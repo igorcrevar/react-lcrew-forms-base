@@ -1,0 +1,34 @@
+{
+  "name": "react-lcrew-forms-base",
+  "title": "React LCrew Forms Base",
+  "version": "0.0.1",
+  "description": "Base package used from react-native-lcrew-forms",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/igorcrevar/react-lcrew-forms-base.git"
+  },
+  "bugs": {
+    "url": "https://github.com/igorcrevar/react-lcrew-forms-base/issues"
+  },
+  "keywords": [
+    "forms",
+    "react"
+  ],
+  "author": {
+    "name": "Igor Crevar",
+    "email": "crewce@gmail.com"
+  },
+  "license": "MIT",
+  "licenseFilename": "LICENSE",
+  "readmeFilename": "README.md",
+  "peerDependencies": {
+    "react": "^16.8.1"
+  },
+  "devDependencies": {
+    "react": "^16.8.3"
+  }
+}
