@@ -5,7 +5,9 @@
   "description": "Base package used from react-native-lcrew-forms",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lib:dev": "rollup -c -o dist/lcrew-forms-base.dev.js",
+    "lib:prod": "cross-env NODE_ENV=production rollup -c -o dist/lcrew-forms-base.min.js"
   },
   "repository": {
     "type": "git",
@@ -25,10 +27,22 @@
   "license": "MIT",
   "licenseFilename": "LICENSE",
   "readmeFilename": "README.md",
+  "babel": {
+    "presets": [
+      "@babel/preset-react"
+    ]
+  },
   "peerDependencies": {
     "react": "^16.8.1"
   },
   "devDependencies": {
-    "react": "^16.8.3"
+    "@babel/cli": "^7.7.5",
+    "@babel/core": "^7.7.5",
+    "@babel/preset-react": "^7.7.4",
+    "rollup": "^1.27.11",
+    "rollup-plugin-babel": "^4.3.3",
+    "rollup-plugin-buble": "^0.19.8",
+    "rollup-plugin-uglify": "^6.0.4",
+    "cross-env": "^6.0.3"
   }
 }
