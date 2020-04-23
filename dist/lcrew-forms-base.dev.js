@@ -229,9 +229,13 @@ function FormComponent(ref) {
   var clearFieldsAfterSubmit = ref.clearFieldsAfterSubmit;
   var additionalContextProps = ref.additionalContextProps;
   var formGlobalErrorName = ref.formGlobalErrorName;
+  if (formGlobalErrorName === void 0) formGlobalErrorName = 'globalError';
   var reducerData = React.useReducer(formComponentReducer, formGlobalErrorName, formComponentReducerInit);
   var state = reducerData[0];
   var dispatch = reducerData[1];
+  var formContextValue = React.useMemo(function () {
+    return [state, dispatch, additionalContextProps];
+  }, [state, additionalContextProps]);
   React.useEffect(function () {
     var isMounted = true;
 
@@ -244,12 +248,12 @@ function FormComponent(ref) {
           errors: errors
         });
       });
-      return function () {
-        return isMounted = false;
-      };
     }
-  }, [state.isSubmitted]);
-  var formContextValue = !additionalContextProps ? reducerData : [state, dispatch, additionalContextProps];
+
+    return function () {
+      return isMounted = false;
+    };
+  }, [state.isSubmitted, clearFieldsAfterSubmit]);
   return React.createElement(FormContext.Provider, {
     value: formContextValue
   }, children);
@@ -260,7 +264,8 @@ FormComponent.propTypes = {
   formSubmit: PropTypes.func.isRequired,
   // async (values) => {}
   clearFieldsAfterSubmit: PropTypes.bool,
-  additionalContextProps: PropTypes.object
+  additionalContextProps: PropTypes.object,
+  formGlobalErrorName: PropTypes.string
 };
 
 function useFormContext() {
@@ -313,6 +318,19 @@ function useFormField(ref) {
   return [valueCurrent, error, fieldEnabledCurrent, dispatch, additionalContextProps];
 }
 
+var getMergedProps = function (props1, props2) {
+  var result = Object.keys(props2).reduce(function (acc, key) {
+    var value = props2[key];
+
+    if (value !== undefined) {
+      acc[key] = value;
+    }
+
+    return acc;
+  }, Object.assign({}, props1));
+  return result;
+};
+
 function FormFieldComponent(props) {
   var ref = useFormField(props);
   var value = ref[0];
@@ -343,7 +361,9 @@ function FormFieldComponent(props) {
       onBlur(name, value, error, dispatch);
     }
   }, [name, value, error]);
-  return React.createElement(Template, Object.assign({}, props, additionalContextProps, {
+  var ComponentTemplate = Template || additionalContextProps.Template;
+  var mergedProps = getMergedProps(additionalContextProps, props);
+  return React.createElement(ComponentTemplate, Object.assign({}, mergedProps, {
     value: value,
     error: error,
     fieldEnabled: fieldEnabled,
@@ -361,6 +381,38 @@ function useFormSubmit() {
   var isSubmitted = state.isSubmitted;
   var disabled = isSubmitted || hasErrors(state);
   return [isSubmitted, disabled, dispatch, additionalContextProps];
+}
+
+function objectWithoutProperties(obj, exclude) {
+  var target = {};
+
+  for (var k in obj) if (Object.prototype.hasOwnProperty.call(obj, k) && exclude.indexOf(k) === -1) target[k] = obj[k];
+
+  return target;
+}
+function FormFieldSubmitComponent(ref) {
+  var Template = ref.Template;
+  var buttonDisabled = ref.disabled;
+  var rest = objectWithoutProperties(ref, ["Template", "disabled"]);
+  var otherProps = rest;
+  var ref$1 = useFormSubmit();
+  var isSubmitted = ref$1[0];
+  var disabled = ref$1[1];
+  var dispatch = ref$1[2];
+  var additionalContextProps = ref$1[3];
+  var onSubmit = React.useCallback(function () {
+    return dispatch({
+      type: 'submit'
+    });
+  }, []);
+  var TemplateComponent = Template || additionalContextProps.SubmitTemplate;
+  var mergedProps = getMergedProps(additionalContextProps, otherProps);
+  return React.createElement(TemplateComponent, Object.assign({}, mergedProps, {
+    onSubmit: onSubmit,
+    isSubmitted: isSubmitted,
+    disabled: disabled || buttonDisabled,
+    dispatch: dispatch
+  }));
 }
 
 var emptyArray = [];
@@ -435,6 +487,7 @@ function useAutocomplete(items, selectedItems, setSelectedItems, getItemId, filt
 
 exports.Form = FormComponent$1;
 exports.FormField = FormFieldComponent;
+exports.FormFieldSubmit = FormFieldSubmitComponent;
 exports.useAutocomplete = useAutocomplete;
 exports.useFormContext = useFormContext;
 exports.useFormContextEnabled = useFormContextEnabled;

@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer } from 'react'
+import React, { useEffect, useReducer, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { FormContext } from './reducer/FormContext'
 import {
@@ -10,10 +10,11 @@ function FormComponent({
     formSubmit,
     clearFieldsAfterSubmit,
     additionalContextProps,
-    formGlobalErrorName,
+    formGlobalErrorName = 'globalError',
  }) {
     const reducerData = useReducer(formComponentReducer, formGlobalErrorName, formComponentReducerInit)
     const [state, dispatch] = reducerData
+    const formContextValue = useMemo(() => [state, dispatch, additionalContextProps], [state, additionalContextProps])
     useEffect(() => {
         let isMounted = true
         if (state.isSubmitted) {
@@ -21,11 +22,10 @@ function FormComponent({
             formSubmit(values).then(errors => {
                 isMounted && dispatch({ type: 'finishSubmit', clearFieldsAfterSubmit, errors })
             })
-            return () => isMounted = false
         }
-    }, [state.isSubmitted])
+        return () => isMounted = false
+    }, [state.isSubmitted, clearFieldsAfterSubmit])
 
-    const formContextValue = !additionalContextProps ? reducerData : [state, dispatch, additionalContextProps]
     return (
         <FormContext.Provider value={formContextValue}>
             {children}
@@ -39,4 +39,5 @@ FormComponent.propTypes = {
     formSubmit: PropTypes.func.isRequired, // async (values) => {}
     clearFieldsAfterSubmit: PropTypes.bool,
     additionalContextProps: PropTypes.object,
+    formGlobalErrorName: PropTypes.string,
 }

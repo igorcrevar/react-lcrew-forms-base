@@ -1,6 +1,6 @@
-import React from 'react'
-import { useCallback } from 'react'
+import React, { useCallback } from 'react'
 import useFormField from './hooks/FormFieldHook'
+import { getMergedProps } from './utils/Utils'
 
 export default function FormFieldComponent(props) {
     const [ value, error, fieldEnabled, dispatch, additionalContextProps ] = useFormField(props)
@@ -20,7 +20,9 @@ export default function FormFieldComponent(props) {
         }
     }, [name, value, error])
 
-    return <Template {...props} {...additionalContextProps}
+    const ComponentTemplate = Template || additionalContextProps.Template
+    const mergedProps = getMergedProps(additionalContextProps, props)
+    return <ComponentTemplate {...mergedProps}
             value={value} error={error} fieldEnabled={fieldEnabled} dispatch={dispatch}
             onBlur={templateOnBlur} changeValue={templateChangeValue} />
 }
