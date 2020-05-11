@@ -292,13 +292,15 @@ function useFormField(ref) {
   var validators = ref.validators;
   var valueFilter = ref.valueFilter;
   var dependencies = ref.dependencies;
-  var validateOnBlur = ref.validateOnBlur;
   var value = ref.value;
+  var refreshValue = ref.refreshValue;
+  var validateOnBlur = ref.validateOnBlur;
   var fieldEnabled = ref.fieldEnabled;
   var ref$1 = useFormContext();
   var state = ref$1[0];
   var dispatch = ref$1[1];
-  var additionalContextProps = ref$1[2];
+  var additionalContextProps = ref$1[2]; // register field in reducer
+
   React.useEffect(function () {
     var action = {
       type: 'add',
@@ -311,7 +313,17 @@ function useFormField(ref) {
       enabled: fieldEnabled
     };
     dispatch(action);
-  }, []);
+  }, []); // set refreshValue props to true in order to change value in reducer whenever value prop has been changed
+
+  React.useEffect(function () {
+    if (refreshValue) {
+      dispatch({
+        type: 'value',
+        name: name,
+        value: value
+      });
+    }
+  }, [value, refreshValue]);
   var error = state.errors[name];
   var valueCurrent = state.values[name] !== undefined ? state.values[name] : value;
   var fieldEnabledCurrent = state.fieldActiveMap[name] !== undefined ? state.fieldActiveMap[name] : fieldEnabled;
