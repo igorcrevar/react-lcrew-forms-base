@@ -27,7 +27,7 @@ export default function useFormField({
     // set refreshValue props to true in order to change value in reducer whenever value prop has been changed
     useEffect(() => {
         if (refreshValue) {
-            dispatch({ type: 'value', name, value })
+            dispatch({ type: 'value', name, value, updateDefaultValue: true, })
         }
     }, [value, refreshValue])
 

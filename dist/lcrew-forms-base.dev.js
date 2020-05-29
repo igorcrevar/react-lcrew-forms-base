@@ -11,6 +11,7 @@ function formComponentReducerInit(formGlobalErrorName) {
   var formComponentInitialState = {
     fields: [],
     values: {},
+    defaultValues: {},
     errors: (obj = {}, obj[formGlobalErrorName] = undefined, obj),
     fieldActiveMap: {},
     isSubmitted: false,
@@ -20,7 +21,7 @@ function formComponentReducerInit(formGlobalErrorName) {
   return formComponentInitialState;
 }
 function formComponentReducer(state, action) {
-  var obj, obj$1, obj$2, obj$3, obj$4, obj$5, obj$6, obj$7, obj$8;
+  var obj, obj$1, obj$2, obj$3, obj$4, obj$5, obj$6, obj$7, obj$8, obj$9, obj$10;
 
   switch (action.type) {
     case 'add':
@@ -28,13 +29,13 @@ function formComponentReducer(state, action) {
         var newField = {
           name: action.name,
           validators: action.validators,
-          defaultValue: action.value,
           valueFilter: action.valueFilter,
           validateOnBlur: action.validateOnBlur
         };
         var values = Object.assign({}, state.values, (obj = {}, obj[action.name] = action.value, obj));
         var errors = Object.assign({}, state.errors, (obj$1 = {}, obj$1[action.name] = undefined, obj$1));
-        var fieldActiveMap = Object.assign({}, state.fieldActiveMap, (obj$2 = {}, obj$2[action.name] = action.enabled, obj$2));
+        var defaultValues = Object.assign({}, state.defaultValues, (obj$2 = {}, obj$2[action.name] = action.value, obj$2));
+        var fieldActiveMap = Object.assign({}, state.fieldActiveMap, (obj$3 = {}, obj$3[action.name] = action.enabled, obj$3));
         var fields = state.fields.concat([newField]);
         var dependenciesMap = Object.assign({}, state.dependenciesMap);
 
@@ -50,15 +51,17 @@ function formComponentReducer(state, action) {
           values: values,
           errors: errors,
           dependenciesMap: dependenciesMap,
-          fieldActiveMap: fieldActiveMap
+          fieldActiveMap: fieldActiveMap,
+          defaultValues: defaultValues
         });
       }
 
     case 'value':
       {
         if (state.values[action.name] !== action.value && (!action.condition || action.condition(state))) {
-          var values$1 = Object.assign({}, state.values, (obj$3 = {}, obj$3[action.name] = action.value, obj$3));
-          var errors$1 = Object.assign({}, state.errors, (obj$4 = {}, obj$4[state.formGlobalErrorName] = undefined, obj$4));
+          var values$1 = Object.assign({}, state.values, (obj$4 = {}, obj$4[action.name] = action.value, obj$4));
+          var errors$1 = Object.assign({}, state.errors, (obj$5 = {}, obj$5[state.formGlobalErrorName] = undefined, obj$5));
+          var defaultValues$1 = action.updateDefaultValue ? Object.assign({}, state.defaultValues, (obj$6 = {}, obj$6[action.name] = action.value, obj$6)) : state.defaultValues;
           var field = state.fields.find(function (x) {
             return x.name == action.name;
           });
@@ -78,7 +81,8 @@ function formComponentReducer(state, action) {
 
           return Object.assign({}, state, {
             values: values$1,
-            errors: errors$1
+            errors: errors$1,
+            defaultValues: defaultValues$1
           });
         }
 
@@ -88,7 +92,7 @@ function formComponentReducer(state, action) {
     case 'error':
       {
         var rn = action.name !== null && action.name !== undefined ? action.name : state.formGlobalErrorName;
-        var errors$2 = Object.assign({}, state.errors, (obj$5 = {}, obj$5[rn] = action.error, obj$5));
+        var errors$2 = Object.assign({}, state.errors, (obj$7 = {}, obj$7[rn] = action.error, obj$7));
         return Object.assign({}, state, {
           errors: errors$2
         });
@@ -97,8 +101,8 @@ function formComponentReducer(state, action) {
     case 'enable':
       {
         if (state.fieldActiveMap[action.name] !== action.value) {
-          var fieldActiveMap$1 = Object.assign({}, state.fieldActiveMap, (obj$6 = {}, obj$6[action.name] = action.value, obj$6));
-          var errors$3 = Object.assign({}, state.errors, (obj$7 = {}, obj$7[action.name] = undefined, obj$7));
+          var fieldActiveMap$1 = Object.assign({}, state.fieldActiveMap, (obj$8 = {}, obj$8[action.name] = action.value, obj$8));
+          var errors$3 = Object.assign({}, state.errors, (obj$9 = {}, obj$9[action.name] = undefined, obj$9));
           return Object.assign({}, state, {
             fieldActiveMap: fieldActiveMap$1,
             errors: errors$3
@@ -128,7 +132,7 @@ function formComponentReducer(state, action) {
         var error = validateField(field$1, state.values, state.errors, state.fieldActiveMap);
 
         if (error !== state.errors[action.name]) {
-          var errors$5 = Object.assign({}, state.errors, (obj$8 = {}, obj$8[action.name] = error, obj$8));
+          var errors$5 = Object.assign({}, state.errors, (obj$10 = {}, obj$10[action.name] = error, obj$10));
           return Object.assign({}, state, {
             errors: errors$5
           });
@@ -167,7 +171,7 @@ function formComponentReducer(state, action) {
         } // reset fields to default values only if there are no errors and clearFieldsAfterSubmit is set
         else if (action.clearFieldsAfterSubmit) {
             state.fields.forEach(function (field) {
-              values$2[field.name] = field.defaultValue;
+              values$2[field.name] = state.defaultValues[field.name];
             });
           }
 
@@ -320,7 +324,8 @@ function useFormField(ref) {
       dispatch({
         type: 'value',
         name: name,
-        value: value
+        value: value,
+        updateDefaultValue: true
       });
     }
   }, [value, refreshValue]);
@@ -349,7 +354,12 @@ function FormFieldComponent(props) {
   var error = ref[1];
   var fieldEnabled = ref[2];
   var dispatch = ref[3];
-  var additionalContextProps = ref[4];
+  var additionalContextProps = ref[4]; // dispatch does not have callback
+  // this hack ensures user onBlur handler is called after validation on blur
+
+  var ref$1 = React.useState(undefined);
+  var onBlurIndex = ref$1[0];
+  var setOnBlurIndex = ref$1[1];
   var name = props.name;
   var onBlur = props.onBlur;
   var validateOnBlur = props.validateOnBlur;
@@ -367,12 +377,20 @@ function FormFieldComponent(props) {
         type: 'validate',
         name: name
       });
-    }
 
-    if (onBlur) {
+      if (onBlur) {
+        setOnBlurIndex((onBlurIndex || 0) + 1);
+      }
+    } else if (onBlur) {
       onBlur(name, value, error, dispatch);
     }
-  }, [name, value, error]);
+  }, [name, value, error]); // onBlur hack
+
+  React.useEffect(function () {
+    if (onBlurIndex !== undefined) {
+      onBlur(name, value, error, dispatch);
+    }
+  }, [onBlurIndex]);
   var ComponentTemplate = Template || additionalContextProps.Template;
   var mergedProps = getMergedProps(additionalContextProps, props);
   return React.createElement(ComponentTemplate, Object.assign({}, mergedProps, {

@@ -2,6 +2,7 @@ export function formComponentReducerInit(formGlobalErrorName = 'globalError') {
     const formComponentInitialState = {
         fields: [],
         values: {},
+        defaultValues: {},
         errors: { 
             [formGlobalErrorName]: undefined,
         },
@@ -19,12 +20,12 @@ export function formComponentReducer(state, action) {
             const newField = { 
                 name: action.name,
                 validators: action.validators,
-                defaultValue: action.value,
                 valueFilter: action.valueFilter,
                 validateOnBlur: action.validateOnBlur,
             }
             const values = { ...state.values, [action.name]: action.value }
             const errors = { ...state.errors, [action.name]: undefined }
+            const defaultValues = { ...state.defaultValues, [action.name]: action.value }
             const fieldActiveMap = { ...state.fieldActiveMap, [action.name]: action.enabled }
             const fields = [ ...state.fields, newField ]
             const dependenciesMap = { ...state.dependenciesMap }
@@ -33,13 +34,16 @@ export function formComponentReducer(state, action) {
                     dependenciesMap[fname] = { ...dependenciesMap[fname], [action.name]: true }
                 })
             }
-            return { ...state, fields, values, errors, dependenciesMap, fieldActiveMap }
+            return { ...state, fields, values, errors, dependenciesMap, fieldActiveMap, defaultValues }
         }
 
         case 'value': {
             if (state.values[action.name] !== action.value && (!action.condition || action.condition(state))) {
                 const values = { ...state.values, [action.name]: action.value }
                 const errors = { ...state.errors, [state.formGlobalErrorName]: undefined }
+                const defaultValues = action.updateDefaultValue 
+                    ? { ...state.defaultValues, [action.name]: action.value }
+                    : state.defaultValues
 
                 const field = state.fields.find(x => x.name == action.name)
                 if (!field.validateOnBlur || !!errors[action.name]) {
@@ -53,7 +57,7 @@ export function formComponentReducer(state, action) {
                         }
                     })
                 }
-                return { ...state, values, errors }
+                return { ...state, values, errors, defaultValues }
             }
             return state
         }
@@ -112,7 +116,7 @@ export function formComponentReducer(state, action) {
             // reset fields to default values only if there are no errors and clearFieldsAfterSubmit is set
             else if (action.clearFieldsAfterSubmit) {
                 state.fields.forEach(field => {
-                    values[field.name] = field.defaultValue
+                    values[field.name] = state.defaultValues[field.name]
                 })
             }
             
